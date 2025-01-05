@@ -32,6 +32,63 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 	return i, err
 }
 
+const createEntry = `-- name: CreateEntry :one
+INSERT INTO entries (
+    acc_id, 
+    amount
+) VALUES (
+    $1, $2
+) RETURNING id, acc_id, amount, created_at
+`
+
+type CreateEntryParams struct {
+	AccID  int64 `json:"acc_id"`
+	Amount int64 `json:"amount"`
+}
+
+// Create a ledger entry
+func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry, error) {
+	row := q.db.QueryRowContext(ctx, createEntry, arg.AccID, arg.Amount)
+	var i Entry
+	err := row.Scan(
+		&i.ID,
+		&i.AccID,
+		&i.Amount,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const createTransfer = `-- name: CreateTransfer :one
+INSERT INTO transfers (
+    from_acc_id, 
+    to_acc_id, 
+    amount
+) VALUES (
+    $1, $2, $3
+) RETURNING id, from_acc_id, to_acc_id, amount, created_at
+`
+
+type CreateTransferParams struct {
+	FromAccID int64 `json:"from_acc_id"`
+	ToAccID   int64 `json:"to_acc_id"`
+	Amount    int64 `json:"amount"`
+}
+
+// Create a transfer record
+func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) (Transfer, error) {
+	row := q.db.QueryRowContext(ctx, createTransfer, arg.FromAccID, arg.ToAccID, arg.Amount)
+	var i Transfer
+	err := row.Scan(
+		&i.ID,
+		&i.FromAccID,
+		&i.ToAccID,
+		&i.Amount,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const deleteAccount = `-- name: DeleteAccount :exec
 DELETE FROM accounts WHERE id = $1
 `
@@ -53,6 +110,52 @@ func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
 		&i.Owner,
 		&i.Balance,
 		&i.Currency,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getAccountForUpdate = `-- name: GetAccountForUpdate :one
+SELECT id, owner, balance, currency, created_at 
+FROM accounts 
+WHERE id = $1 
+FOR UPDATE
+`
+
+// Fetch account details
+func (q *Queries) GetAccountForUpdate(ctx context.Context, id int64) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getAccountForUpdate, id)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Balance,
+		&i.Currency,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getTransfer = `-- name: GetTransfer :one
+SELECT 
+    id, 
+    from_acc_id, 
+    to_acc_id, 
+    amount, 
+    created_at 
+FROM transfers 
+WHERE id = $1 
+LIMIT 1
+`
+
+func (q *Queries) GetTransfer(ctx context.Context, id int64) (Transfer, error) {
+	row := q.db.QueryRowContext(ctx, getTransfer, id)
+	var i Transfer
+	err := row.Scan(
+		&i.ID,
+		&i.FromAccID,
+		&i.ToAccID,
+		&i.Amount,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -107,6 +210,31 @@ type UpdateAccountParams struct {
 
 func (q *Queries) UpdateAccount(ctx context.Context, arg UpdateAccountParams) (Account, error) {
 	row := q.db.QueryRowContext(ctx, updateAccount, arg.ID, arg.Balance)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.Owner,
+		&i.Balance,
+		&i.Currency,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateAccountBalance = `-- name: UpdateAccountBalance :one
+UPDATE accounts 
+SET balance = balance + $2 
+WHERE id = $1 RETURNING id, owner, balance, currency, created_at
+`
+
+type UpdateAccountBalanceParams struct {
+	ID      int64 `json:"id"`
+	Balance int64 `json:"balance"`
+}
+
+// Update an account balance
+func (q *Queries) UpdateAccountBalance(ctx context.Context, arg UpdateAccountBalanceParams) (Account, error) {
+	row := q.db.QueryRowContext(ctx, updateAccountBalance, arg.ID, arg.Balance)
 	var i Account
 	err := row.Scan(
 		&i.ID,
