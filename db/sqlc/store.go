@@ -83,7 +83,7 @@ func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (Trans
                 return err
             }
         }
-		fmt.Println(result.FromAccount.Balance, result.ToAccount.Balance)
+		
         // Step 2: Create transfer record
         result.Transfer, err = q.CreateTransfer(ctx, CreateTransferParams{
             FromAccID: arg.FromAccountID,
