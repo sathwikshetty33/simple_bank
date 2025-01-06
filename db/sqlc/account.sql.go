@@ -89,6 +89,36 @@ func (q *Queries) CreateTransfer(ctx context.Context, arg CreateTransferParams) 
 	return i, err
 }
 
+const createUser = `-- name: CreateUser :one
+INSERT INTO users (username, pass, full_name, email) VALUES ($1, $2, $3, $4) RETURNING username, pass, full_name, email, pass_changed, created_at
+`
+
+type CreateUserParams struct {
+	Username string `json:"username"`
+	Pass     string `json:"pass"`
+	FullName string `json:"full_name"`
+	Email    string `json:"email"`
+}
+
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.Username,
+		arg.Pass,
+		arg.FullName,
+		arg.Email,
+	)
+	var i User
+	err := row.Scan(
+		&i.Username,
+		&i.Pass,
+		&i.FullName,
+		&i.Email,
+		&i.PassChanged,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const deleteAccount = `-- name: DeleteAccount :exec
 DELETE FROM accounts WHERE id = $1
 `
@@ -161,6 +191,24 @@ func (q *Queries) GetTransfer(ctx context.Context, id int64) (Transfer, error) {
 	return i, err
 }
 
+const getUser = `-- name: GetUser :one
+SELECT username, pass, full_name, email, pass_changed, created_at FROM users WHERE username = $1 LIMIT 1
+`
+
+func (q *Queries) GetUser(ctx context.Context, username string) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUser, username)
+	var i User
+	err := row.Scan(
+		&i.Username,
+		&i.Pass,
+		&i.FullName,
+		&i.Email,
+		&i.PassChanged,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const listAccounts = `-- name: ListAccounts :many
 SELECT id, owner, balance, currency, created_at FROM accounts ORDER BY id LIMIT $2 OFFSET $1
 `
@@ -176,7 +224,7 @@ func (q *Queries) ListAccounts(ctx context.Context, arg ListAccountsParams) ([]A
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Account
+	items := []Account{}
 	for rows.Next() {
 		var i Account
 		if err := rows.Scan(

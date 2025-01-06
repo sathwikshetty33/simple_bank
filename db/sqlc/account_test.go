@@ -9,8 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 func createCreateAccount(t *testing.T) Account {
+	acc := createCreateUser(t)
 	arg := CreateAccountParams{
-		Owner: util.RandomOwner(),
+		Owner: acc.Username,
 		Balance: util.RandomMoney(),
 		Currency: util.RandomCurrency(),
 	}
@@ -26,11 +27,12 @@ func createCreateAccount(t *testing.T) Account {
 }
 
 func TestCreateAccount(t *testing.T) {
+	acc := createCreateUser(t)
 	arg := CreateAccountParams{
-		Owner: util.RandomOwner(),
+		Owner: acc.Username,
 		Balance: util.RandomMoney(),
 		Currency: util.RandomCurrency(),
-	}
+	} 
 	account, err := testQueries.CreateAccount(context.Background(), arg)
 	require.NoError(t, err)
 	require.NotEmpty(t, account)
