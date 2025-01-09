@@ -2,14 +2,15 @@ package api
 
 import (
 	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sathwikshetty33/golang_bank/db/sqlc"
+	"github.com/sathwikshetty33/golang_bank/token"
 )
 
 type createAccountRequest struct {
-    Owner    string `json:"owner" binding:"required"`
     Currency string `json:"currency" binding:"required,oneof=USD EUR"`
 }
 
@@ -19,8 +20,9 @@ func (s *server) createAccount(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 }
+authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Balance:  0,
 		Currency : req.Currency,
 	}
@@ -42,7 +44,13 @@ func (s *server) getAccount(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 }
+authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 	account, err := s.store.GetAccount(c, req.ID)
+	if account.Owner != authPayload.Username {
+		err := errors.New("account does not belong to the user")
+		c.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(http.StatusNotFound, errorResponse(err))
@@ -65,7 +73,9 @@ func (s *server) listAccount(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, errorResponse(err))
 		return
 }
+	authPayload := c.MustGet(authorizationPayloadKey).(*token.Payload)
 	arg := db.ListAccountsParams{
+		Owner: authPayload.Username,
 		Limit: int32(req.page_size),
 		Offset: int32((req.page_id - 1) * req.page_size),
 	}
