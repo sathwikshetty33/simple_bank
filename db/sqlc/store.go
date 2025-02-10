@@ -12,7 +12,7 @@ type Store struct {
 	db *sql.DB
 }
 
-// Constructor for Store
+
 func NewStore(db *sql.DB) *Store {
 	return &Store{
 		Queries: New(db),
@@ -20,7 +20,6 @@ func NewStore(db *sql.DB) *Store {
 	}
 }
 
-// Executes a function within a database transaction
 func (store *Store) execTx(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := store.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelReadCommitted, // or sql.LevelReadUncommitted

@@ -29,7 +29,6 @@ func NewServer(config util.Config, store *db.Store)( *server, error) {
 	router := gin.Default()
 	router.POST("/createuser", server.createUser)
 	router.POST("/users/login", server.login)
-
 	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
 	authRoutes.POST("/accounts", server.createAccount)
 	authRoutes.POST("/maketransfer", server.createTransfer)
