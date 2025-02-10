@@ -34,6 +34,7 @@ func NewServer(config util.Config, store *db.Store)( *server, error) {
 	authRoutes.POST("/maketransfer", server.createTransfer)
 	authRoutes.GET("/accounts/:id", server.getAccount)
 	authRoutes.GET("/accounts", server.listAccount)
+	router.POST("/tokens/renew-access", server.renewAccessToken)
 	server.router = router
 	return server, nil
 }

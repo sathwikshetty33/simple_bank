@@ -110,8 +110,8 @@ type loginUserRequest struct {
 		ID :     refreshPayload.ID,
 	Username     : user.Username,
 	RefreshToken  :Token ,
-	UserAgent    : "",
-	ClientIp     : "",
+	UserAgent    : c.Request.UserAgent(),
+	ClientIp     : c.ClientIP(),
 	IsBlocked    : false,
 	ExpiresAt  : refreshPayload.ExpiresAt,
 	})
